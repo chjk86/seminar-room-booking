@@ -1,0 +1,12 @@
+{
+  "name": "세미나실 예약",
+  "short_name": "세미나실예약",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f7fa",
+  "theme_color": "#2563eb",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/static/icon.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

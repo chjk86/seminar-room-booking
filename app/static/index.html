@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="theme-color" content="#2563eb" />
+<title>세미나실 예약</title>
+<link rel="manifest" href="/manifest.json" />
+<link rel="apple-touch-icon" href="/static/icon.png" />
+<style>
+  :root {
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --bg: #f5f7fa;
+    --card: #ffffff;
+    --border: #e2e8f0;
+    --text: #1e293b;
+    --muted: #64748b;
+    --danger: #dc2626;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding-bottom: 96px;
+  }
+  header {
+    background: var(--primary);
+    color: white;
+    padding: 18px 16px 14px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  header h1 {
+    margin: 0 0 2px;
+    font-size: 18px;
+    font-weight: 700;
+  }
+  header p {
+    margin: 0;
+    font-size: 12px;
+    opacity: 0.85;
+  }
+  .date-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--card);
+    margin: 12px 16px 0;
+    padding: 10px 12px;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .date-bar button {
+    border: none;
+    background: #eef2ff;
+    color: var(--primary);
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+  }
+  .date-bar input[type=date] {
+    flex: 1;
+    border: none;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    background: transparent;
+    text-align: center;
+  }
+  .today-badge {
+    font-size: 11px;
+    color: var(--primary);
+    background: #eef2ff;
+    padding: 4px 8px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  main { padding: 12px 16px; }
+  .empty {
+    text-align: center;
+    color: var(--muted);
+    padding: 40px 10px;
+    font-size: 14px;
+  }
+  .res-card {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+  }
+  .res-info { min-width: 0; }
+  .res-time {
+    font-weight: 700;
+    color: var(--primary);
+    font-size: 14px;
+  }
+  .res-name { font-size: 15px; font-weight: 600; margin: 2px 0; }
+  .res-purpose {
+    font-size: 12px;
+    color: var(--muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .cancel-btn {
+    border: 1px solid #fecaca;
+    background: #fef2f2;
+    color: var(--danger);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  .fab {
+    position: fixed;
+    right: 20px;
+    bottom: 24px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 999px;
+    padding: 15px 22px;
+    font-size: 15px;
+    font-weight: 700;
+    box-shadow: 0 6px 16px rgba(37,99,235,0.4);
+    z-index: 20;
+  }
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15,23,42,0.5);
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+    z-index: 30;
+  }
+  .overlay.show { display: flex; }
+  .sheet {
+    background: var(--card);
+    width: 100%;
+    max-width: 480px;
+    border-radius: 18px 18px 0 0;
+    padding: 20px 20px 28px;
+    max-height: 88vh;
+    overflow-y: auto;
+  }
+  .sheet h2 {
+    margin: 0 0 14px;
+    font-size: 17px;
+  }
+  .field { margin-bottom: 12px; }
+  .field label {
+    display: block;
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 5px;
+    font-weight: 600;
+  }
+  .field input {
+    width: 100%;
+    padding: 11px 12px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    font-size: 15px;
+    background: #fff;
+  }
+  .row2 { display: flex; gap: 10px; }
+  .row2 .field { flex: 1; }
+  .sheet-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .sheet-actions button {
+    flex: 1;
+    padding: 13px;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 700;
+    border: none;
+  }
+  .btn-primary { background: var(--primary); color: white; }
+  .btn-secondary { background: #f1f5f9; color: var(--text); }
+  .msg {
+    font-size: 13px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    display: none;
+  }
+  .msg.error { display: block; background: #fef2f2; color: var(--danger); }
+  .msg.success { display: block; background: #f0fdf4; color: #15803d; }
+  .sync-note {
+    text-align: center;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1 id="room-title">세미나실 예약 현황</h1>
+  <p id="room-sub">실시간 예약/취소</p>
+</header>
+
+<div class="date-bar">
+  <button id="prev-day">‹</button>
+  <input type="date" id="date-input" />
+  <button id="next-day">›</button>
+</div>
+<div style="text-align:center;">
+  <span class="sync-note" id="last-sync"></span>
+</div>
+
+<main>
+  <div id="list"></div>
+</main>
+
+<button class="fab" id="open-add">+ 예약하기</button>
+
+<div class="overlay" id="add-overlay">
+  <div class="sheet">
+    <h2>새 예약</h2>
+    <div class="msg" id="add-msg"></div>
+    <div class="field">
+      <label>이름</label>
+      <input type="text" id="f-name" placeholder="예: 홍길동" maxlength="30" />
+    </div>
+    <div class="field">
+      <label>날짜</label>
+      <input type="date" id="f-date" />
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>시작 시간</label>
+        <input type="time" id="f-start" step="1800" />
+      </div>
+      <div class="field">
+        <label>종료 시간</label>
+        <input type="time" id="f-end" step="1800" />
+      </div>
+    </div>
+    <div class="field">
+      <label>용도 (선택)</label>
+      <input type="text" id="f-purpose" placeholder="예: 세미나, 랩미팅" maxlength="50" />
+    </div>
+    <div class="sheet-actions">
+      <button class="btn-secondary" id="add-cancel">취소</button>
+      <button class="btn-primary" id="add-submit">예약하기</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="cancel-overlay">
+  <div class="sheet">
+    <h2>예약 취소</h2>
+    <div class="msg" id="cancel-msg"></div>
+    <p style="font-size:14px; color:var(--muted); margin-top:0;" id="cancel-target-info"></p>
+    <div class="field">
+      <label>본인 확인을 위해 예약자 이름을 입력하세요</label>
+      <input type="text" id="c-name" placeholder="예약 시 입력한 이름" />
+    </div>
+    <div class="sheet-actions">
+      <button class="btn-secondary" id="cancel-close">닫기</button>
+      <button class="btn-primary" id="cancel-submit" style="background:var(--danger);">취소하기</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = "";
+let CONFIG = { room_name: "세미나실", open_time: "09:00", close_time: "22:00", slot_minutes: 30, today: null };
+let currentDate = null;
+let cancelTargetId = null;
+let pollTimer = null;
+
+const $ = (id) => document.getElementById(id);
+
+function fmtDateLabel(d) {
+  const dt = new Date(d + "T00:00:00");
+  const days = ["일","월","화","수","목","금","토"];
+  return `${dt.getMonth()+1}월 ${dt.getDate()}일 (${days[dt.getDay()]})`;
+}
+
+function shiftDate(d, delta) {
+  const dt = new Date(d + "T00:00:00");
+  dt.setDate(dt.getDate() + delta);
+  return dt.toISOString().slice(0,10);
+}
+
+async function loadConfig() {
+  const res = await fetch("/api/config");
+  CONFIG = await res.json();
+  currentDate = CONFIG.today;
+  $("date-input").value = currentDate;
+  $("room-title").textContent = CONFIG.room_name + " 예약 현황";
+  $("room-sub").textContent = `예약 가능 시간 ${CONFIG.open_time} ~ ${CONFIG.close_time} · 실시간 동기화`;
+}
+
+async function loadReservations() {
+  try {
+    const res = await fetch(`/api/reservations?date=${currentDate}`);
+    const data = await res.json();
+    renderList(data);
+    $("last-sync").textContent = "마지막 갱신: " + new Date().toLocaleTimeString("ko-KR");
+  } catch (e) {
+    $("last-sync").textContent = "동기화 실패, 재시도 중...";
+  }
+}
+
+function renderList(items) {
+  const list = $("list");
+  if (!items.length) {
+    list.innerHTML = `<div class="empty">${fmtDateLabel(currentDate)}에 예약이 없습니다.<br/>가장 먼저 예약해보세요!</div>`;
+    return;
+  }
+  list.innerHTML = items.map(r => `
+    <div class="res-card">
+      <div class="res-info">
+        <div class="res-time">${r.start_time} - ${r.end_time}</div>
+        <div class="res-name">${escapeHtml(r.name)}</div>
+        ${r.purpose ? `<div class="res-purpose">${escapeHtml(r.purpose)}</div>` : ""}
+      </div>
+      <button class="cancel-btn" onclick="openCancel(${r.id}, '${escapeAttr(r.start_time)}', '${escapeAttr(r.end_time)}', '${escapeAttr(r.name)}')">취소</button>
+    </div>
+  `).join("");
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+function escapeAttr(s) { return escapeHtml(s).replace(/'/g, "&#39;"); }
+
+function openCancel(id, start, end, name) {
+  cancelTargetId = id;
+  $("cancel-target-info").textContent = `${fmtDateLabel(currentDate)} ${start}-${end} · ${name}`;
+  $("c-name").value = "";
+  $("cancel-msg").className = "msg";
+  $("cancel-msg").textContent = "";
+  $("cancel-overlay").classList.add("show");
+}
+
+function startPolling() {
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(loadReservations, 3000);
+}
+
+// --- 날짜 이동 ---
+$("prev-day").onclick = () => { currentDate = shiftDate(currentDate, -1); $("date-input").value = currentDate; loadReservations(); };
+$("next-day").onclick = () => { currentDate = shiftDate(currentDate, 1); $("date-input").value = currentDate; loadReservations(); };
+$("date-input").onchange = (e) => { currentDate = e.target.value; loadReservations(); };
+
+// --- 예약 추가 ---
+$("open-add").onclick = () => {
+  $("f-name").value = "";
+  $("f-date").value = currentDate;
+  $("f-start").value = "";
+  $("f-end").value = "";
+  $("f-purpose").value = "";
+  $("add-msg").className = "msg";
+  $("add-msg").textContent = "";
+  $("add-overlay").classList.add("show");
+};
+$("add-cancel").onclick = () => $("add-overlay").classList.remove("show");
+
+$("add-submit").onclick = async () => {
+  const body = {
+    name: $("f-name").value.trim(),
+    date: $("f-date").value,
+    start_time: $("f-start").value,
+    end_time: $("f-end").value,
+    purpose: $("f-purpose").value.trim(),
+  };
+  if (!body.name || !body.date || !body.start_time || !body.end_time) {
+    showMsg("add-msg", "모든 필수 항목을 입력해주세요.", true);
+    return;
+  }
+  try {
+    const res = await fetch("/api/reservations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showMsg("add-msg", data.detail || "예약에 실패했습니다.", true);
+      return;
+    }
+    $("add-overlay").classList.remove("show");
+    currentDate = body.date;
+    $("date-input").value = currentDate;
+    loadReservations();
+  } catch (e) {
+    showMsg("add-msg", "네트워크 오류가 발생했습니다.", true);
+  }
+};
+
+// --- 예약 취소 ---
+$("cancel-close").onclick = () => $("cancel-overlay").classList.remove("show");
+$("cancel-submit").onclick = async () => {
+  const name = $("c-name").value.trim();
+  if (!name) {
+    showMsg("cancel-msg", "이름을 입력해주세요.", true);
+    return;
+  }
+  try {
+    const res = await fetch(`/api/reservations/${cancelTargetId}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showMsg("cancel-msg", data.detail || "취소에 실패했습니다.", true);
+      return;
+    }
+    $("cancel-overlay").classList.remove("show");
+    loadReservations();
+  } catch (e) {
+    showMsg("cancel-msg", "네트워크 오류가 발생했습니다.", true);
+  }
+};
+
+function showMsg(id, text, isError) {
+  const el = $(id);
+  el.textContent = text;
+  el.className = "msg " + (isError ? "error" : "success");
+}
+
+// --- 초기화 ---
+(async function init() {
+  await loadConfig();
+  await loadReservations();
+  startPolling();
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  }
+})();
+</script>
+</body>
+</html>
