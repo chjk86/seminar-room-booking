@@ -14,6 +14,7 @@ DB 백엔드:
   (컴퓨터에서 그냥 실행해볼 때 편하게 쓰기 위한 기본값입니다.)
 """
 
+import io
 import os
 import sqlite3
 from contextlib import contextmanager
@@ -22,7 +23,7 @@ from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, field_validator
 
@@ -312,6 +313,82 @@ def create_reservation(payload: ReservationCreate):
         ).fetchone()
 
     return row_to_dict(row)
+
+
+@app.get("/api/reservations/export")
+def export_reservations(year: Optional[int] = None, month: Optional[int] = None):
+    """예약 내역을 엑셀(.xlsx) 파일로 다운로드합니다.
+    - year, month를 함께 지정하면 해당 월의 예약만 내려받습니다.
+    - 둘 다 생략하면 전체 기간을 내려받습니다.
+    """
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, Alignment, PatternFill
+    from openpyxl.utils import get_column_letter
+
+    sql = "SELECT * FROM reservations"
+    params: tuple = ()
+    label = "전체"
+
+    if year is not None and month is not None:
+        if month < 1 or month > 12:
+            raise HTTPException(400, "잘못된 월입니다.")
+        prefix = f"{year:04d}-{month:02d}-"
+        sql += " WHERE date LIKE ?"
+        params = (prefix + "%",)
+        label = f"{year:04d}년 {month:02d}월"
+    elif (year is None) != (month is None):
+        raise HTTPException(400, "year와 month는 함께 지정해야 합니다.")
+
+    sql += " ORDER BY date, start_time"
+
+    with get_db() as conn:
+        rows = conn.execute(sql, params).fetchall()
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "예약내역"
+
+    headers = ["번호", "이름", "날짜", "시작시간", "종료시간", "목적", "예약일시"]
+    ws.append(headers)
+    header_fill = PatternFill(start_color="2952CC", end_color="2952CC", fill_type="solid")
+    for col_idx, _ in enumerate(headers, start=1):
+        cell = ws.cell(row=1, column=col_idx)
+        cell.font = Font(bold=True, color="FFFFFF")
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal="center")
+
+    for r in rows:
+        ws.append(
+            [
+                r["id"],
+                r["name"],
+                r["date"],
+                r["start_time"],
+                r["end_time"],
+                r["purpose"] or "",
+                r["created_at"],
+            ]
+        )
+
+    widths = [8, 14, 12, 10, 10, 24, 20]
+    for i, w in enumerate(widths, start=1):
+        ws.column_dimensions[get_column_letter(i)].width = w
+    ws.freeze_panes = "A2"
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+
+    if year is not None and month is not None:
+        filename = f"reservations_{year:04d}-{month:02d}.xlsx"
+    else:
+        filename = f"reservations_all_{date.today().isoformat()}.xlsx"
+
+    return StreamingResponse(
+        buffer,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @app.delete("/api/reservations/{reservation_id}")
