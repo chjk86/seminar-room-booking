@@ -284,6 +284,11 @@
 <header>
   <h1 id="room-title">세미나실 예약 현황</h1>
   <p id="room-sub">실시간 예약/취소</p>
+  <div style="margin-top:10px; display:flex; gap:6px; justify-content:center; align-items:center; flex-wrap:wrap;">
+    <input type="month" id="export-month" style="border-radius:8px; border:none; padding:6px 8px; font-size:13px;" />
+    <button id="export-btn" type="button" style="border:none; border-radius:8px; padding:6px 12px; font-size:13px; background:#fff; color:#2952CC; font-weight:600;">엑셀 다운로드</button>
+    <a href="/api/reservations/export" style="font-size:12px; color:#fff; opacity:0.85; text-decoration:underline;">전체 내역 받기</a>
+  </div>
 </header>
 
 <div class="calendar-card">
@@ -632,12 +637,26 @@ function showMsg(id, text, isError) {
   el.className = "msg " + (isError ? "error" : "success");
 }
 
+function setupExportControls() {
+  const monthInput = $("export-month");
+  const now = new Date();
+  monthInput.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
+  $("export-btn").onclick = () => {
+    const val = monthInput.value; // "YYYY-MM"
+    if (!val) return;
+    const [y, m] = val.split("-");
+    window.location.href = `/api/reservations/export?year=${parseInt(y, 10)}&month=${parseInt(m, 10)}`;
+  };
+}
+
 // --- 초기화 ---
 (async function init() {
   await loadConfig();
   updateSelectedDateLabel();
   await loadMonthSummary();
   await loadReservations();
+  setupExportControls();
   startPolling();
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("/sw.js").catch(() => {});
